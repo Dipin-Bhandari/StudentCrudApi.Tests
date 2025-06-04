@@ -1,0 +1,112 @@
+using Xunit;
+using Moq;
+using StudentCrudApi.Controllers;
+using StudentCrudApi.Models;
+using StudentCrudApi.Services;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+
+namespace StudentCrudApi.Tests.Controllers
+{
+    public class StudentControllerTests
+    {
+        private readonly Mock<IStudentService> _mockService;
+        private readonly StudentController _controller;
+
+        public StudentControllerTests()
+        {
+            _mockService = new Mock<IStudentService>();
+            _controller = new StudentController(_mockService.Object);
+        }
+
+        [Fact]
+        public void GetAll_ReturnsOkResult_WithListOfStudents()
+        {
+            var students = new List<Student>
+            {
+                new Student { Id = 1, Name = "John", School = "ABC School" },
+                new Student { Id = 2, Name = "Jane", School = "XYZ School" }
+            };
+            _mockService.Setup(s => s.GetAll()).Returns(students);
+
+            var result = _controller.GetAll() as OkObjectResult;
+
+            Assert.NotNull(result);
+            Assert.IsAssignableFrom<IEnumerable<Student>>(result.Value);
+        }
+
+        [Fact]
+        public void GetById_ValidId_ReturnsOk()
+        {
+            var student = new Student { Id = 1, Name = "John", School = "School" };
+            _mockService.Setup(s => s.GetById(1)).Returns(student);
+
+            var result = _controller.GetById(1) as OkObjectResult;
+
+            Assert.NotNull(result);
+            Assert.Equal(student, result.Value);
+        }
+
+        [Fact]
+        public void GetById_InvalidId_ReturnsNotFound()
+        {
+            _mockService.Setup(s => s.GetById(5)).Returns((Student)null);
+
+            var result = _controller.GetById(5);
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public void Create_ValidStudent_ReturnsCreatedAtAction()
+        {
+            var student = new Student { Id = 1, Name = "New", School = "S" };
+            _mockService.Setup(s => s.Add(It.IsAny<Student>())).Returns(student);
+
+            var result = _controller.Create(student) as CreatedAtActionResult;
+
+            Assert.NotNull(result);
+            Assert.Equal(student, result.Value);
+        }
+
+        [Fact]
+        public void Update_ValidId_ReturnsNoContent()
+        {
+            _mockService.Setup(s => s.Update(1, It.IsAny<Student>())).Returns(true);
+
+            var result = _controller.Update(1, new Student());
+
+            Assert.IsType<NoContentResult>(result);
+        }
+
+        [Fact]
+        public void Update_InvalidId_ReturnsNotFound()
+        {
+            _mockService.Setup(s => s.Update(99, It.IsAny<Student>())).Returns(false);
+
+            var result = _controller.Update(99, new Student());
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public void Delete_ValidId_ReturnsNoContent()
+        {
+            _mockService.Setup(s => s.Delete(1)).Returns(true);
+
+            var result = _controller.Delete(1);
+
+            Assert.IsType<NoContentResult>(result);
+        }
+
+        [Fact]
+        public void Delete_InvalidId_ReturnsNotFound()
+        {
+            _mockService.Setup(s => s.Delete(999)).Returns(false);
+
+            var result = _controller.Delete(999);
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+    }
+}
